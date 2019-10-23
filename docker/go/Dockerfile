@@ -1,7 +1,11 @@
 # Builder
 #########
-FROM golang:1.12.9-alpine3.10 AS build
+FROM golang:1.8
 
-WORKDIR /go/src/
+WORKDIR /app
+ADD . /app
 
-RUN apk add --no-cache git
+RUN go get -d -v ./...
+RUN go install -v ./...
+
+CMD ["go", "run", "main.go"]
