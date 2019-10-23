@@ -1,0 +1,73 @@
+version: '3.5'
+
+services:
+  app:
+    build:
+      context: .
+#      dockerfile: docker/go/Dockerfile
+      target: dev
+    container_name: price-calculator
+    entrypoint: ["/bin/sh", "/dev.sh"]
+    security_opt:
+      - apparmor=unconfined
+    cap_add:
+      - SYS_PTRACE
+    ports:
+      - "80:80"
+      - "40000:40000"
+
+  dgzero:
+    image: dgraph/dgraph:v1.1.0
+    volumes:
+      - type: volume
+        source: dg-data
+        target: /dgraph
+        volume:
+          nocopy: true
+    ports:
+      - 5080:5080
+      - 6080:6080
+    command: dgraph zero --my=dgzero:5080
+
+  dgserver:
+    image: dgraph/dgraph:v1.1.0
+    volumes:
+      - type: volume
+        source: dg-data
+        target: /dgraph
+        volume:
+          nocopy: true
+    ports:
+      - 8080:8080
+      - 9080:9080
+    command: dgraph alpha --my=dgserver:7080 --lru_mb=2048 --zero=dgzero:5080
+
+  dgratel:
+    image: dgraph/dgraph:v1.1.0
+    volumes:
+      - type: volume
+        source: dg-data
+        target: /dgraph
+        volume:
+          nocopy: true
+    ports:
+      - 8000:8000
+    command: dgraph-ratel --addr=dgserver:7080
+
+  db:
+    image: mysql:5.7
+    command: "mysqld --bind-address=0.0.0.0"
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: pc
+      MYSQL_USER: pc
+      MYSQL_PASSWORD: pc
+    volumes:
+      - db-data:/var/lib/mysql
+
+volumes:
+  dgraph:
+  db-data:
+  dg-data:
